@@ -1,6 +1,6 @@
 # Imports
-if __name__ == '__main__':
-    import random
+import random
+import numpy as np
 
 # Snake classes
 class snake_obj:
@@ -23,37 +23,33 @@ class snake_part:
         self.previous = None
         self.next = None
 
-def draw(snake, apple, GAME_SIZE, score):
-    for y in range(GAME_SIZE, 0, -1):
-        for x in range(0, GAME_SIZE):
-            item = "-"
-            if apple[0] == x and apple[1] == y:
-                item = "@"
-            # Check snake positions
-            part = snake.head
-            while part:
-                if part.pos[0] == x and part.pos[1] == y:
-                    item = "*"
-                    break
-                part = part.next
-
-            print (item, end="")
-        print ("")
-    print (f"\n {score}")
-
-#draw(snake, apple, GAME_SIZE, score)
+#draw(snake, apple, game_size, score)
 class game:
-    rewards = 0
-    head = snake_part([random.randint(0, GAME_SIZE), random.randint(0, GAME_SIZE)], [0, 0])
-    snake = snake_obj(head)
-    apple = [random.randint(0, GAME_SIZE), random.randint(0, GAME_SIZE)]
-    eaten = False
-
     def __init__(self, game_size=20):
         self.game_size = game_size
+        self.rewards = 0
+        head = snake_part([random.randint(0, self.game_size), random.randint(0, self.game_size)], [0, 0])
+        self.snake = snake_obj(head)
+        self.apple = [random.randint(0, self.game_size), random.randint(0, self.game_size)]
+        self.eaten = False
 
-    def get_input(self, input):
-        return input
+    def draw(self, score=0):
+        for y in range(self.game_size, -1, -1):
+            for x in range(0, self.game_size+1):
+                item = "-"
+                if self.apple[0] == x and self.apple[1] == y:
+                    item = "@"
+                # Check snake positions
+                part = self.snake.head
+                while part:
+                    if part.pos[0] == x and part.pos[1] == y:
+                        item = "*"
+                        break
+                    part = part.next
+
+                print (item, end="")
+            print ("")
+        print (f"\n {score}")
 
     def move_snake(self, snake, direction):
         # Move to last part
@@ -81,7 +77,7 @@ class game:
         """Returns whether the snake has hit the wall or itself"""
         head = snake.head
         # Wall collisions
-        if head.pos[0] > game_size or head.pos[0] < 0 or head.pos[1] > game_size or head.pos[1] < 0:
+        if head.pos[0] >= game_size or head.pos[0] < 0 or head.pos[1] >= game_size or head.pos[1] < 0:
             return True
 
         head_x, head_y = head.pos
@@ -94,10 +90,14 @@ class game:
             part = part.next
 
     def run_cycle(self, move):
-        scored = False
-        died = False
+        eaten = False 
+        
+        # Get inital distance to apple
+        x1 = self.snake.head.pos[0]
+        y1 = self.snake.head.pos[1]
+        distance_to_apple1 = np.sqrt((self.apple[0] - x1)**2 + (self.apple[1] - y1)**2)
         if self.eaten:
-            self.apple = [random.randint(0, GAME_SIZE), random.randint(0, GAME_SIZE)]
+            self.apple = [random.randint(0, self.game_size), random.randint(0, self.game_size)]
             self.eaten = False
 
         if move == "u":
@@ -109,11 +109,11 @@ class game:
         else:
             direction = [-1, 0]
 
-        self.move_snake(snake, direction)
+        self.move_snake(self.snake, direction)
         # Check if apple has been eaten
         if self.snake.head.pos[0] == self.apple[0] and self.snake.head.pos[1] == self.apple[1]:
             self.eaten = True
-            scored = True
+            eaten = True
             # Get to last part of snake
             part = self.snake.head
             while part.next:
@@ -123,9 +123,33 @@ class game:
             part.next = snake_part([part.pos[0] - part.direction[0], part.pos[1] - part.direction[1]], [0, 0])
             part.next.previous = part
 
-        end = self.check_collisions(snake, GAME_SIZE)
+        end = self.check_collisions(self.snake, self.game_size)
+        
+        # Get final distance to apple
+        x2 = self.snake.head.pos[0]
+        y2 = self.snake.head.pos[1]
+        distance_to_apple2 = np.sqrt((self.apple[0] - x2)**2 + (self.apple[1] - y2)**2)
+        
+        # Calculate reward
+        if eaten:
+            reward = 0.7
+        elif end:
+            reward = -0.5
+        else:
+            if distance_to_apple2 < distance_to_apple1:
+                reward = 0.1
+            else:
+                reward = -0.1
 
-        # Return whether the game is over
-        if end:
-            return True
-        return False
+        # Return rewards, game state, and if the game is over
+        return reward, self, end 
+        
+print ('done')
+
+if __name__ == '__main__':
+    a = game()
+    while True:
+        a.draw()
+        move = input()
+        end = a.run_cycle(move)
+        print (end)
