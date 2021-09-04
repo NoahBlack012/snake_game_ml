@@ -28,9 +28,9 @@ class game:
     def __init__(self, game_size=20):
         self.game_size = game_size
         self.rewards = 0
-        head = snake_part([random.randint(0, self.game_size), random.randint(0, self.game_size)], [0, 0])
+        head = snake_part([random.randint(0, self.game_size-1), random.randint(0, self.game_size-1)], [0, 0])
         self.snake = snake_obj(head)
-        self.apple = [random.randint(0, self.game_size), random.randint(0, self.game_size)]
+        self.apple = [random.randint(0, self.game_size-2), random.randint(0, self.game_size-2)]
         self.eaten = False
 
     def draw(self, score=0):
@@ -77,7 +77,7 @@ class game:
         """Returns whether the snake has hit the wall or itself"""
         head = snake.head
         # Wall collisions
-        if head.pos[0] >= game_size or head.pos[0] < 0 or head.pos[1] >= game_size or head.pos[1] < 0:
+        if head.pos[0] > game_size or head.pos[0] < 0 or head.pos[1] > game_size or head.pos[1] < 0:
             return True
 
         head_x, head_y = head.pos
@@ -88,16 +88,17 @@ class game:
             if head_x == x and head_y == y and snake.length > 2:
                 return True
             part = part.next
+        return False
 
     def run_cycle(self, move):
-        eaten = False 
-        
+        eaten = False
+
         # Get inital distance to apple
         x1 = self.snake.head.pos[0]
         y1 = self.snake.head.pos[1]
         distance_to_apple1 = np.sqrt((self.apple[0] - x1)**2 + (self.apple[1] - y1)**2)
         if self.eaten:
-            self.apple = [random.randint(0, self.game_size), random.randint(0, self.game_size)]
+            self.apple = [random.randint(0, self.game_size-2), random.randint(0, self.game_size-2)]
             self.eaten = False
 
         if move == "u":
@@ -124,12 +125,12 @@ class game:
             part.next.previous = part
 
         end = self.check_collisions(self.snake, self.game_size)
-        
+
         # Get final distance to apple
         x2 = self.snake.head.pos[0]
         y2 = self.snake.head.pos[1]
         distance_to_apple2 = np.sqrt((self.apple[0] - x2)**2 + (self.apple[1] - y2)**2)
-        
+
         # Calculate reward
         if eaten:
             reward = 0.7
@@ -142,8 +143,8 @@ class game:
                 reward = -0.1
 
         # Return rewards, game state, and if the game is over
-        return reward, self, end 
-        
+        return reward, self, end
+
 print ('done')
 
 if __name__ == '__main__':
